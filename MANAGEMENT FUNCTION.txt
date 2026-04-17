@@ -1,0 +1,120 @@
+========= MANAGEMENT ========= 
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `spManageBasicInformation_mariano` $$
+CREATE PROCEDURE `spManageBasicInformation_mariano`(
+IN `mode` INT,
+
+INOUT `id` BIGINT,
+IN `lname` VARCHAR(60),
+IN `fname` VARCHAR(100),
+IN `mname` VARCHAR(60),
+IN `sname` VARCHAR(20),
+IN `gender` VARCHAR(10),
+IN `bday` VARCHAR(60),
+IN `status` TINYINT(1)
+)
+BEGIN
+IF  (`mode`  =  1) THEN
+	SET `id` = `fnInsertBasicInfo_mariano`(`lname`,`fname`,`mname`,`sname`,`gender`,`bday`,`status`);
+ELSEIF (`mode`  =  2) THEN
+	SET `id` = `fnUpdateBasicInfo_mariano`(`id`,`lname`,`fname`,`mname`,`sname`,`gender`,`bday`,`status`);
+	
+ELSEIF (`mode`  =  3) THEN
+	SET `id` = `fnDeleteBasicInfo_mariano`(`id`);
+ELSE
+	SELECT 'INVALID MODE';
+END IF;
+END$$
+
+DELIMITER ;
+
+=== CALL ===
+SET @`id`=1;
+CALL `spManageBasicInformation_mariano`(1,@`id`,'MARIANO','JHUSNINE NICOLE','BINATERO','','FEMALE','2005-07-01',1);
+SELECT @`id`;
+
+=== CALL ===
+SET @`id`=192;
+CALL `spManageBasicInformation_mariano`(2,@`id`,'MARIANOO','JHUSNINE NICOLE','BINATERO','','FEMALE','2005-07-01',1);
+SELECT @`id`;
+
+=== CALL ===
+SET @`id`=192;
+CALL `spManageBasicInformation_mariano`(3,@`id`,'MARIANOO','JHUSNINE NICOLE','BINATERO','','FEMALE','2005-07-01',1);
+SELECT @`id`;
+
+========= INSERT ========= 
+DELIMITER $$
+DROP FUNCTION IF EXISTS `fnInsertBasicInfo_mariano` $$
+CREATE FUNCTION `fnInsertBasicInfo_mariano`
+(`lname` VARCHAR(250),
+`fname` VARCHAR(250),
+`mname` VARCHAR(250),
+`sname` VARCHAR(250),
+`gender` VARCHAR(250),
+`bday` VARCHAR(250),
+`status` VARCHAR(250)
+)
+RETURNS BIGINT
+BEGIN
+	INSERT INTO `basicinformation`
+	(`basicinfo_lname`,
+	`basicinfo_fname`,
+	`basicinfo_mname`,
+	`basicinfo_sname`,
+	`basicinfo_gender`,
+	`basicinfo_bday`,
+	`basicinfo_status`)
+VALUES
+	(`lname`,`fname`,
+	`mname`,`sname`,
+	`gender`,`bday`,
+	`status`);
+	RETURN LAST_INSERT_ID();
+END$$
+DELIMITER ;
+
+========= UPDATE ========= 
+
+DELIMITER $$
+DROP FUNCTION IF EXISTS `fnUpdateBasicInfo_mariano` $$
+CREATE FUNCTION `fnUpdateBasicInfo_mariano`
+(
+`ID` BIGINT,
+`lname` VARCHAR(250),
+`fname` VARCHAR(250),
+`mname` VARCHAR(250),
+`sname` VARCHAR(250),
+`gender` VARCHAR(250),
+`bday` VARCHAR(250),
+`status` VARCHAR(250)
+)
+RETURNS BIGINT
+BEGIN
+	UPDATE `basicinformation`
+	SET
+		`basicinfo_lname` = `lname`,
+		`basicinfo_fname` = `fname`,
+		`basicinfo_mname` = `mname`,
+		`basicinfo_sname` = `sname`,
+		`basicinfo_gender` = `gender`,
+		`basicinfo_bday` = `bday`,
+		`basicinfo_status` = `status`
+		WHERE `basicinfo_id` = `id`;
+	RETURN 0;
+END$$
+DELIMITER ;
+
+========= DELETE ========= 
+DELIMITER $$
+DROP FUNCTION IF EXISTS `fnDeleteBasicInfo_mariano` $$
+CREATE FUNCTION `fnDeleteBasicInfo_mariano`
+(
+`id` BIGINT
+)
+RETURNS BIGINT
+BEGIN
+	DELETE FROM `basicinformation` WHERE `basicinfo_id` = `id`;
+	RETURN 0;
+END$$
+DELIMITER ;
