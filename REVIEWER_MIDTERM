@@ -1,0 +1,210 @@
+DELIMITER $$
+
+-- 1. LOGIN
+CREATE PROCEDURE LoginUser(
+    IN p_username VARCHAR(50),
+    IN p_password VARCHAR(50)
+)
+BEGIN
+    SELECT `cre_id` AS `id`,
+           `cre_isactive` AS `active`
+    FROM `credential`
+    WHERE `cre_username` = p_username 
+    AND `cre_password` = SHA2(p_password, 256);
+END$$
+
+-- 2. ADD STUDENT
+CREATE PROCEDURE AddStudent(
+    IN p_lname  VARCHAR(50),
+    IN p_fname  VARCHAR(50),
+    IN p_mname  VARCHAR(50),
+    IN p_sname  VARCHAR(50),
+    IN p_gender VARCHAR(10),
+    IN p_bday   DATE
+)
+BEGIN
+    INSERT INTO `basicinformation`(
+        `basicinfo_lname`,
+        `basicinfo_fname`,
+        `basicinfo_mname`,
+        `basicinfo_sname`,
+        `basicinfo_gender`,
+        `basicinfo_bday`
+    )
+    VALUES(p_lname, p_fname, p_mname, p_sname, p_gender, p_bday);
+END$$
+
+-- 3. SEARCH STUDENT
+CREATE PROCEDURE SearchStudent(
+    IN p_name VARCHAR(100)
+)
+BEGIN
+    SELECT 
+        `basicinfo_id`     AS `Id`,
+        `basicinfo_lname`  AS `Lastname`,
+        `basicinfo_fname`  AS `Firstname`,
+        `basicinfo_mname`  AS `Middlename`,
+        `basicinfo_gender` AS `Gender`,
+        `basicinfo_bday`   AS `Bday`
+    FROM `basicinformation`
+    WHERE CONCAT(`basicinfo_lname`, `basicinfo_fname`, `basicinfo_mname`)
+    LIKE CONCAT('%', p_name, '%');
+END$$
+
+-- 4. UPDATE STUDENT
+CREATE PROCEDURE UpdateStudent(
+    IN p_id     INT,
+    IN p_lname  VARCHAR(50),
+    IN p_fname  VARCHAR(50),
+    IN p_mname  VARCHAR(50),
+    IN p_gender VARCHAR(10),
+    IN p_bday   DATE
+)
+BEGIN
+    UPDATE `basicinformation`
+    SET `basicinfo_lname`  = p_lname,
+        `basicinfo_fname`  = p_fname,
+        `basicinfo_mname`  = p_mname,
+        `basicinfo_gender` = p_gender,
+        `basicinfo_bday`   = p_bday
+    WHERE `basicinfo_id`   = p_id;
+END$$
+
+-- 5. DELETE STUDENT
+CREATE PROCEDURE DeleteStudent(
+    IN p_id INT
+)
+BEGIN
+    DELETE FROM `basicinformation`
+    WHERE `basicinfo_id` = p_id;
+END$$
+
+DELIMITER ;
+
+STEP 2: I-update ang PHP Files
+controller.php (Login)
+php<?php
+$host = "localhost";
+$dbname = "students";
+$user = "root";
+$password = "";
+try {
+    session_start();
+    $name = $_GET["uname"];
+    $pass = $_GET["upass"];
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // STORED PROC na
+    $stmt = $pdo->prepare("CALL LoginUser(?, ?)");
+    $stmt->execute([$name, $pass]);
+    $student = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if ($student) {
+        $_SESSION["id"] = $student[0]["id"];
+    }
+    echo json_encode($student);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+?>
+
+add_student.php
+php<?php
+$host = "localhost";
+$dbname = "students";
+$user = "root";
+$password = "";
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    $lname  = $_GET['info_lname'];
+    $fname  = $_GET['info_fname'];
+    $mname  = $_GET['info_mname'];
+    $sname  = $_GET['info_sname'];
+    $gender = $_GET['info_gender'];
+    $bdate  = $_GET['info_bdate'];
+
+    // STORED PROC na
+    $stmt = $pdo->prepare("CALL AddStudent(?,?,?,?,?,?)");
+    $stmt->execute([$lname, $fname, $mname, $sname, $gender, $bdate]);
+    echo "SUCCESS";
+} catch(PDOException $e) {
+    echo "FAIL: " . $e->getMessage();
+}
+?>
+
+load_students.php (Search)
+php<?php
+$host = "localhost";
+$dbname = "students";
+$user = "root";
+$password = "";
+try {
+    session_start();
+    $name = $_GET["uname"];
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // STORED PROC na
+    $stmt = $pdo->prepare("CALL SearchStudent(?)");
+    $stmt->execute([$name]);
+    $student = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo json_encode($student);
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+?>
+
+edit_controller.php (Update)
+php<?php
+$host = "localhost";
+$dbname = "students";
+$user = "root";
+$password = "";
+try {
+    session_start();
+    if (!isset($_SESSION["id"])) {
+        echo "UNAUTHORIZED";
+        exit;
+    }
+
+    $id     = $_GET["id"];
+    $lname  = $_GET["lname"];
+    $fname  = $_GET["fname"];
+    $mname  = $_GET["mname"];
+    $gender = $_GET["gender"];
+    $bday   = $_GET["bday"];
+
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // STORED PROC na
+    $stmt = $pdo->prepare("CALL UpdateStudent(?,?,?,?,?,?)");
+    $stmt->execute([$id, $lname, $fname, $mname, $gender, $bday]);
+    echo "SUCCESS";
+} catch(PDOException $e) {
+    echo "FAIL: " . $e->getMessage();
+}
+?>
+
+delete_student.php
+php<?php
+$host = "localhost";
+$dbname = "students";
+$user = "root";
+$password = "";
+try {
+    $id = $_GET["id"];
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8", $user, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // STORED PROC na
+    $stmt = $pdo->prepare("CALL DeleteStudent(?)");
+    $stmt->execute([$id]);
+    echo "SUCCESS";
+} catch(PDOException $e) {
+    die("Connection failed: " . $e->getMessage());
+}
+?>
