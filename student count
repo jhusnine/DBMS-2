@@ -1,0 +1,33 @@
+====== 1 ======
+SELECT
+	IFNULL(`sec`.`sec_name`,'NULL') AS `SECTION`,
+	COUNT(`info`.`sec_id`)AS `COUNT`
+FROM `basicinformation` AS `info`
+LEFT JOIN`section` AS `sec`
+ON `info`.`sec_id` = `sec`.`sec_id`
+GROUP BY `sec`.`sec_id`, `sec`.`sec_name`
+ORDER BY `sec`.`sec_name`;
+
+====== 2 ======
+SELECT
+	CONCAT(`info`.`basicinfo_lname`,',',
+	       `info`.`basicinfo_fname`) AS 'NAME',
+	SUM(`pay`.`pay_amt_paid`) AS `TOTAL AMOUNT`
+FROM `basicinformation` AS `info`
+LEFT JOIN`payment` AS `pay`
+ON `info`.`basicinfo_id` = `pay`.`basicinfo_id`
+GROUP BY `info`.`basicinfo_id`
+
+====== 3 ======
+SELECT
+	IFNULL(`sec`.`sec_name`,'SECTION') AS `SECTION`,
+	COUNT(`info`.`basicinfo_id`)AS `COUNT`,
+	SUM(CASE WHEN `info`.`basicinfo_gender` = 'MALE' 
+	THEN 1 ELSE 0 END) AS `MALE`,
+	SUM(CASE WHEN `info`.`basicinfo_gender` = 'FEMALE' 
+	THEN 1 ELSE 0 END) AS `FEMALE`
+FROM `basicinformation` AS `info`
+LEFT JOIN`section` AS `sec`
+ON `info`.`sec_id` = `sec`.`sec_id`
+GROUP BY `sec`.`sec_id`, `sec`.`sec_name`
+ORDER BY `sec`.`sec_name`;
